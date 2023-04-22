@@ -1,6 +1,6 @@
-import { CString, dlopen, FFIType, ptr } from "bun:ffi";
+import { CString, dlopen, FFIType, ptr, suffix } from "bun:ffi";
 
-const lib = dlopen("./libs/webview-bun/zig-out/lib/libwebview-bun.dylib", {
+const lib = dlopen(`./libs/webview-bun/zig-out/lib/libwebview-bun.${suffix}`, {
     create: {
         returns: "ptr",
         args: ["bool"]
@@ -17,14 +17,10 @@ const lib = dlopen("./libs/webview-bun/zig-out/lib/libwebview-bun.dylib", {
         returns: "void",
         args: ["ptr", "ptr"]
     },
-    run: {
+    start: {
         returns: "void",
         args: ["ptr"]
     },
-    destroy: {
-        returns: "void",
-        args: ["ptr"]
-    }
 });
 
 export enum WVSizeHint {
@@ -53,11 +49,7 @@ export class WebView {
         lib.symbols.setHtml(this.pointer, ptr(Buffer.from(html, "utf8")));
     }
 
-    run(): void {
-        lib.symbols.run(this.pointer);
-    }
-
-    destroy(): void {
-        lib.symbols.destroy(this.pointer);
+    start(): void {
+        lib.symbols.start(this.pointer);
     }
 }
