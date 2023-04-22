@@ -1,0 +1,9 @@
+{
+  "name": "webview-bun",
+  "version": "0.0.1",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "^0.5.0"
+  }
+}
