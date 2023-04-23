@@ -55,14 +55,14 @@ export class WebView {
     private readonly messageHandlers: Record<string, (...args: any[]) => string | void> = {};
 
     // Function called by Zig when a message is sent from the WebView.
-    private readonly messageCallback = new JSCallback((seq: FFIType.cstring, json: FFIType.cstring): void => {
-        const args = JSON.parse((new CString(json) as unknown) as string);
+    private readonly messageCallback = new JSCallback((seq: FFIType.cstring, req: FFIType.cstring): void => {
+        const args = JSON.parse((new CString(req) as unknown) as string);
         if (this.messageHandlers[args[0]] === undefined) return;
 
         const remainder = args.length > 1 ? args.slice(1) : [];
 
         const result = this.messageHandlers[args[0]](...remainder);
-        
+
         if (typeof result === "string") {
             this.returnValue(seq, result);
         } else {
