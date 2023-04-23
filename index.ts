@@ -1,4 +1,4 @@
-import { CString, dlopen, FFIType, ptr, suffix } from "bun:ffi";
+import { dlopen, FFIType, JSCallback, ptr, suffix, CString } from "bun:ffi";
 
 const lib = dlopen(`./libs/webview-bun/zig-out/lib/libwebview-bun.${suffix}`, {
     create: {
@@ -19,7 +19,7 @@ const lib = dlopen(`./libs/webview-bun/zig-out/lib/libwebview-bun.${suffix}`, {
     },
     start: {
         returns: "void",
-        args: ["ptr"]
+        args: ["ptr", "callback"]
     },
 });
 
@@ -32,6 +32,19 @@ export enum WVSizeHint {
 
 export class WebView {
     private readonly pointer: FFIType.pointer;
+    public readonly messageHandlers: Record<string, (args: any[]) => void> = {};
+
+    private readonly messageHandler = new JSCallback((json: FFIType.cstring): void => {
+        const args = JSON.parse((new CString(json) as unknown) as string);
+        if (this.messageHandlers[args[0]] === undefined) return;
+
+        const remainder = args.length > 1 ? args.slice(1) : [];
+
+        this.messageHandlers[args[0]](remainder);
+    }, {
+        returns: "void",
+        args: ["cstring"]
+    })
 
     constructor(debug: boolean = false) {
         this.pointer = lib.symbols.create(debug);
@@ -50,6 +63,6 @@ export class WebView {
     }
 
     start(): void {
-        lib.symbols.start(this.pointer);
+        lib.symbols.start(this.pointer, (this.messageHandler as unknown) as FFIType.pointer);
     }
 }

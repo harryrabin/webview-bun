@@ -17,7 +17,16 @@ pub export fn setHtml(w: wv.webview_t, html: [*c]const u8) void {
     wv.webview_set_html(w, html);
 }
 
-pub export fn start(w: wv.webview_t) void {
+const MessageHandler: type = *fn ([*c]const u8) void;
+
+pub export fn start(w: wv.webview_t, messageHandler: MessageHandler) void {
+    wv.webview_bind(w, "sendMessageToBun", sendMessageToBun, @ptrCast(?*anyopaque, messageHandler));
     wv.webview_run(w);
     defer wv.webview_destroy(w);
+}
+
+fn sendMessageToBun(seq: [*c]const u8, req: [*c]const u8, arg: ?*anyopaque) callconv(.C) void {
+    _ = seq;
+    const handler: MessageHandler = @ptrCast(MessageHandler, @alignCast(4, arg));
+    handler(req);
 }
