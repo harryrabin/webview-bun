@@ -3,7 +3,7 @@ import { dlopen, FFIType, JSCallback, ptr, suffix, CString } from "bun:ffi";
 const lib = dlopen(`./libs/webview-bun/zig-out/lib/libwebview-bun.${suffix}`, {
     create: {
         returns: "ptr",
-        args: ["bool"]
+        args: ["bool", "ptr"]
     },
     setTitle: {
         returns: "void",
@@ -29,6 +29,14 @@ const lib = dlopen(`./libs/webview-bun/zig-out/lib/libwebview-bun.${suffix}`, {
         returns: "void",
         args: ["ptr", "callback"]
     },
+    getWindow: {
+        returns: "ptr",
+        args: []
+    },
+    returnValue: {
+        returns: "void",
+        args: ["ptr", "ptr", "ptr"]
+    }
 });
 
 export enum WVSizeHint {
@@ -39,23 +47,34 @@ export enum WVSizeHint {
 }
 
 export class WebView {
-    private readonly pointer: FFIType.pointer;
-    private readonly messageHandlers: Record<string, (...args: any[]) => void> = {};
+    // Some confusing naming internally, but externally very concise. Notes provided for clarity.
 
-    private readonly messageHandler = new JSCallback((json: FFIType.cstring): void => {
+    private readonly pointer: FFIType.pointer; // The pointer to the WebView instance.
+
+    // The object containing message handlers. The key is the name of the message, and the value is the handler.
+    private readonly messageHandlers: Record<string, (...args: any[]) => string | void> = {};
+
+    // Function called by Zig when a message is sent from the WebView.
+    private readonly messageCallback = new JSCallback((seq: FFIType.cstring, json: FFIType.cstring): void => {
         const args = JSON.parse((new CString(json) as unknown) as string);
         if (this.messageHandlers[args[0]] === undefined) return;
 
         const remainder = args.length > 1 ? args.slice(1) : [];
 
-        this.messageHandlers[args[0]](...remainder);
+        const result = this.messageHandlers[args[0]](...remainder);
+        
+        if (typeof result === "string") {
+            this.returnValue(seq, result);
+        } else {
+            this.returnValue(seq, "[null]");
+        }
     }, {
         returns: "void",
-        args: ["cstring"]
+        args: ["cstring", "cstring"]
     })
 
-    constructor(debug: boolean = false) {
-        this.pointer = lib.symbols.create(debug);
+    constructor(debug: boolean = false, NSWindowHandle?: FFIType.pointer) {
+        this.pointer = lib.symbols.create(debug, NSWindowHandle!);
     }
 
     setTitle(title: string): void {
@@ -79,14 +98,22 @@ export class WebView {
     }
 
     start(): void {
-        lib.symbols.start(this.pointer, (this.messageHandler as unknown) as FFIType.pointer);
+        lib.symbols.start(this.pointer, (this.messageCallback as unknown) as FFIType.pointer);
+    }
+
+    getWindow(): FFIType.pointer {
+        return lib.symbols.getWindow();
+    }
+
+    returnValue(seq: FFIType.cstring, value: string): void {
+        lib.symbols.returnValue(this.pointer, seq, ptr(Buffer.from(value, "utf8")));
     }
 
     sendMessage(name: string, ...args: any[]): void {
-        this.eval(`window.__wvInvoke(${name}, ${JSON.stringify(args)})`);
+        this.eval(`window.__wvInvoke("${name}", "${JSON.stringify(args)}")`);
     }
 
-    handleMessage(name: string, handler: (...args: any[]) => void): void {
+    handleMessage(name: string, handler: (...args: any[]) => string | void): void {
         this.messageHandlers[name] = handler;
     }
 }

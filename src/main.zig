@@ -1,8 +1,8 @@
 const std = @import("std");
 const wv = @import("webview");
 
-pub export fn create(devtools: bool) wv.webview_t {
-    return wv.webview_create(if (devtools) 1 else 0, null);
+pub export fn create(devtools: bool, NSWindowHandle: ?*anyopaque) wv.webview_t {
+    return wv.webview_create(if (devtools) 1 else 0, NSWindowHandle);
 }
 
 pub export fn setTitle(w: wv.webview_t, title: [*c]const u8) void {
@@ -25,7 +25,15 @@ pub export fn init(w: wv.webview_t, js: [*c]const u8) void {
     wv.webview_init(w, js);
 }
 
-const MessageHandler: type = *fn ([*c]const u8) void;
+pub export fn getWindow(w: wv.webview_t) ?*anyopaque {
+    return wv.webview_get_window(w);
+}
+
+pub export fn returnValue(w: wv.webview_t, seq: [*c]const u8, value: [*c]const u8) void {
+    wv.webview_return(w, seq, 0, value);
+}
+
+const MessageHandler: type = *fn ([*c]const u8, [*c]const u8) void;
 
 pub export fn start(w: wv.webview_t, messageHandler: MessageHandler) void {
     wv.webview_bind(w, "wvSendMessage", sendMessageToBun, @ptrCast(?*anyopaque, messageHandler));
@@ -36,7 +44,6 @@ pub export fn start(w: wv.webview_t, messageHandler: MessageHandler) void {
 }
 
 fn sendMessageToBun(seq: [*c]const u8, req: [*c]const u8, arg: ?*anyopaque) callconv(.C) void {
-    _ = seq;
     const handler: MessageHandler = @ptrCast(MessageHandler, @alignCast(4, arg));
-    handler(req);
+    handler(seq, req);
 }
