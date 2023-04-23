@@ -17,6 +17,14 @@ const lib = dlopen(`./libs/webview-bun/zig-out/lib/libwebview-bun.${suffix}`, {
         returns: "void",
         args: ["ptr", "ptr"]
     },
+    eval: {
+        returns: "void",
+        args: ["ptr", "ptr"]
+    },
+    init: {
+        returns: "void",
+        args: ["ptr", "ptr"]
+    },
     start: {
         returns: "void",
         args: ["ptr", "callback"]
@@ -32,7 +40,7 @@ export enum WVSizeHint {
 
 export class WebView {
     private readonly pointer: FFIType.pointer;
-    public readonly messageHandlers: Record<string, (args: any[]) => void> = {};
+    private readonly messageHandlers: Record<string, (...args: any[]) => void> = {};
 
     private readonly messageHandler = new JSCallback((json: FFIType.cstring): void => {
         const args = JSON.parse((new CString(json) as unknown) as string);
@@ -40,7 +48,7 @@ export class WebView {
 
         const remainder = args.length > 1 ? args.slice(1) : [];
 
-        this.messageHandlers[args[0]](remainder);
+        this.messageHandlers[args[0]](...remainder);
     }, {
         returns: "void",
         args: ["cstring"]
@@ -62,7 +70,23 @@ export class WebView {
         lib.symbols.setHtml(this.pointer, ptr(Buffer.from(html, "utf8")));
     }
 
+    eval(js: string): void {
+        lib.symbols.eval(this.pointer, ptr(Buffer.from(js, "utf8")));
+    }
+
+    init(js: string): void {
+        lib.symbols.init(this.pointer, ptr(Buffer.from(js, "utf8")));
+    }
+
     start(): void {
         lib.symbols.start(this.pointer, (this.messageHandler as unknown) as FFIType.pointer);
+    }
+
+    sendMessage(name: string, ...args: any[]): void {
+        this.eval(`window.__wvInvoke(${name}, ${JSON.stringify(args)})`);
+    }
+
+    handleMessage(name: string, handler: (...args: any[]) => void): void {
+        this.messageHandlers[name] = handler;
     }
 }

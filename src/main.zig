@@ -17,10 +17,20 @@ pub export fn setHtml(w: wv.webview_t, html: [*c]const u8) void {
     wv.webview_set_html(w, html);
 }
 
+pub export fn eval(w: wv.webview_t, js: [*c]const u8) void {
+    wv.webview_eval(w, js);
+}
+
+pub export fn init(w: wv.webview_t, js: [*c]const u8) void {
+    wv.webview_init(w, js);
+}
+
 const MessageHandler: type = *fn ([*c]const u8) void;
 
 pub export fn start(w: wv.webview_t, messageHandler: MessageHandler) void {
-    wv.webview_bind(w, "sendMessageToBun", sendMessageToBun, @ptrCast(?*anyopaque, messageHandler));
+    wv.webview_bind(w, "wvSendMessage", sendMessageToBun, @ptrCast(?*anyopaque, messageHandler));
+    wv.webview_init(w, @embedFile("./init.js"));
+
     wv.webview_run(w);
     defer wv.webview_destroy(w);
 }
