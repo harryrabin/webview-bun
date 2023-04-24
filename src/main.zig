@@ -29,8 +29,8 @@ pub export fn getWindow(w: wv.webview_t) ?*anyopaque {
     return wv.webview_get_window(w);
 }
 
-pub export fn returnValue(w: wv.webview_t, seq: [*c]const u8, value: [*c]const u8) void {
-    wv.webview_return(w, seq, 0, value);
+pub export fn returnValue(w: wv.webview_t, seq: [*c]const u8, value: [*c]const u8, isError: bool) void {
+    wv.webview_return(w, seq, if (isError) 1 else 0, value);
 }
 
 const MessageHandler: type = *fn ([*c]const u8, [*c]const u8) void;

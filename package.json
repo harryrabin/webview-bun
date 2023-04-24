@@ -6,7 +6,7 @@
   "devDependencies": {
     "bun-types": "^0.5.0"
   },
-  "scripts": {
-    "postinstall": "zig build"
+  "dependencies": {
+    "serialize-error": "^11.0.0"
   }
 }

@@ -1,4 +1,5 @@
 import { dlopen, FFIType, JSCallback, ptr, suffix, CString } from "bun:ffi";
+import { serializeError } from "serialize-error";
 
 const lib = dlopen(`./libs/webview-bun/zig-out/lib/libwebview-bun.${suffix}`, {
     create: {
@@ -35,7 +36,7 @@ const lib = dlopen(`./libs/webview-bun/zig-out/lib/libwebview-bun.${suffix}`, {
     },
     returnValue: {
         returns: "void",
-        args: ["ptr", "ptr", "ptr"]
+        args: ["ptr", "ptr", "ptr", "bool"]
     }
 });
 
@@ -60,13 +61,16 @@ export class WebView {
         if (this.messageHandlers[args[0]] === undefined) return;
 
         const remainder = args.length > 1 ? args.slice(1) : [];
-
-        const result = this.messageHandlers[args[0]](...remainder);
-
-        if (typeof result === "string") {
-            this.returnValue(seq, result);
-        } else {
-            this.returnValue(seq, "[null]");
+        
+        try {
+            const result = this.messageHandlers[args[0]](...remainder);
+            if (typeof result === "string") {
+                this.returnValue(seq, result);
+            } else {
+                this.returnValue(seq, "[null]");
+            }
+        } catch (e: any) {
+            this.returnValue(seq, JSON.stringify(serializeError(e)), true);
         }
     }, {
         returns: "void",
@@ -105,8 +109,8 @@ export class WebView {
         return lib.symbols.getWindow();
     }
 
-    returnValue(seq: FFIType.cstring, value: string): void {
-        lib.symbols.returnValue(this.pointer, seq, ptr(Buffer.from(value, "utf8")));
+    returnValue(seq: FFIType.cstring, value: string, isError: boolean = false): void {
+        lib.symbols.returnValue(this.pointer, seq, ptr(Buffer.from(value, "utf8")), isError);
     }
 
     sendMessage(name: string, ...args: any[]): void {
