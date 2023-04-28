@@ -2,6 +2,7 @@
 
 # Custom
 zig-*
+.DS_Store
 
 # Logs
 
