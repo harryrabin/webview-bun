@@ -1,8 +1,8 @@
 const std = @import("std");
 const wv = @import("webview");
 
-pub export fn create(devtools: bool, NSWindowHandle: ?*anyopaque) wv.webview_t {
-    return wv.webview_create(if (devtools) 1 else 0, NSWindowHandle);
+pub export fn create(devtools: bool, windowHandle: ?*anyopaque) wv.webview_t {
+    return wv.webview_create(if (devtools) 1 else 0, windowHandle);
 }
 
 pub export fn setTitle(w: wv.webview_t, title: [*c]const u8) void {
