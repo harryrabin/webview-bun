@@ -114,7 +114,7 @@ export class WebView {
     }
 
     sendMessage(name: string, ...args: any[]): void {
-        this.eval(`window.__wvInvoke("${name}", "${JSON.stringify(args)}")`);
+        this.eval(`window.__wvbInvoke("${name}", "${JSON.stringify(args)}")`);
     }
 
     handleMessage(name: string, handler: (...args: any[]) => string | void): void {

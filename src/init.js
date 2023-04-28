@@ -1,16 +1,16 @@
-Object.defineProperty(window, '__wvHandlers', {
+Object.defineProperty(window, '__wvbHandlers', {
     value: {}
 });
 
-Object.defineProperty(window, '__wvInvoke', {
+Object.defineProperty(window, '__wvbInvoke', {
     value: (name, argsJson) => {
         const args = JSON.parse(argsJson);
-        __wvHandlers[name](...args);
+        window.__wvbHandlers[name](...args);
     }
 });
 
-Object.defineProperty(window, 'wvHandleMessage', {
+Object.defineProperty(window, 'wvbHandleMessage', {
     value: (name, handler) => {
-        window.__wvHandlers[name] = handler;
+        window.__wvbHandlers[name] = handler;
     }
 });
