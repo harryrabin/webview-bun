@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     if (!target.isDarwin()) {
-        std.debug.panic("macOS only (temporarily)", .{});
+        std.debug.panic("macOS only (temporarily)\n", .{});
     }
 
     // Standard optimization options allow the person running `zig build` to select
